@@ -32,8 +32,9 @@ jobs:
           sudo apt-get install --yes dbus
 
       - name: Install minimum Rust toolchain
-        uses: dtolnay/rust-toolchain@1.88.0
+        uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: 1.88.0
           components: clippy, rustfmt
 
       - name: Cache Cargo data
@@ -49,4 +50,3 @@ jobs:
 
       - name: Run release checks
         run: ./scripts/check.sh
-
