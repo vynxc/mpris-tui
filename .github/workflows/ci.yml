@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Rust 1.88 and isolated MPRIS
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    env:
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install D-Bus test runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes dbus
+
+      - name: Install minimum Rust toolchain
+        uses: dtolnay/rust-toolchain@1.88.0
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Cargo data
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run release checks
+        run: ./scripts/check.sh
+
