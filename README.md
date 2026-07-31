@@ -27,7 +27,7 @@ terminal, or place it directly on a KDE Plasma desktop with
 - Extrapolates progress locally and resynchronizes position every two seconds.
 - Shows elapsed and total duration on a clickable seek rail.
 - Sends previous, play/pause, next, and absolute seek commands over MPRIS.
-- Renders local MPRIS artwork as truecolor terminal half-block pixels.
+- Renders local MPRIS artwork as truecolor foreground-only block pixels.
 - Defaults to a centered vertical player and adapts to smaller widget sizes.
 - Leaves every cell outside the artwork transparent.
 - Uses a configurable 1–30 FPS redraw ceiling; the default is a quiet 4 FPS.
@@ -118,16 +118,18 @@ the next match when it appears.
 
 ## Transparency
 
-MPRIS TUI leaves all unused cells transparent. Artwork uses foreground and
-background color within its own half-block cells so each terminal row carries
-two image rows. Transparency is ultimately decided by the terminal:
+MPRIS TUI leaves all unused cells transparent. Artwork averages two source
+rows into each foreground-only `█` cell. This avoids terminal background
+painting entirely, so the cover survives transparent hosts that composite only
+glyphs. Transparency is ultimately decided by the terminal:
 
 - a normal terminal needs a transparent profile;
 - Desktop TUI ships a transparent terminal surface;
 - multiplexers and wrappers must not inject a background color.
 
-The default palette uses truecolor foregrounds. `--accent` changes only the
-accent role; it does not recolor artwork.
+The default palette uses truecolor foregrounds. Because color carries the
+artwork itself, MPRIS TUI intentionally overrides a process-level `NO_COLOR`
+setting. `--accent` changes only the accent role; it does not recolor artwork.
 
 ## Efficient by design
 
@@ -145,7 +147,7 @@ make check
 make act
 ```
 
-`make check` runs formatting, Clippy with warnings denied, 19 unit tests, a
+`make check` runs formatting, Clippy with warnings denied, 20 unit tests, a
 mock-player integration test inside an isolated D-Bus session, and an optimized
 release build.
 
@@ -161,7 +163,7 @@ DOCKER_HOST=unix:///run/user/1000/podman/podman.sock \
 Project layout:
 
 ```text
-src/artwork.rs   bounded local artwork cache and half-block renderer
+src/artwork.rs   bounded local artwork cache and foreground-only renderer
 src/cli.rs       dependency-light argument parsing
 src/model.rs     playback state and position extrapolation
 src/mpris.rs     discovery, typed D-Bus proxies, controls, and signal loop

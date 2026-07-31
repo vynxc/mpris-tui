@@ -6,7 +6,7 @@ MPRIS TUI is a glanceable, click-only now-playing controller. Its primary use
 is a transparent desktop canvas, while remaining a normal terminal program
 with no KDE or Desktop TUI dependency.
 
-The visual signature is real cover art rendered with terminal half-blocks,
+The visual signature is real cover art rendered with terminal block cells,
 paired with a thin seek rail that keeps elapsed and total duration visible.
 Information hierarchy is artwork, title, artist, progress, then three icon-only
 transport controls. No card, shadow, fake audio visualization, hotkey legend,
@@ -51,10 +51,15 @@ The maximum redraw rate defaults to 4 FPS and is configurable from 1–30 FPS.
 The provider loop sends immutable snapshots through a Tokio watch channel;
 rendering never blocks on D-Bus.
 
-Text and rails set foreground colors only. Artwork uses `▀`/`▄` glyphs with
-foreground and background colors to represent two source rows per terminal
-cell. Every cell outside the artwork remains untouched, allowing a transparent
+Text and rails set foreground colors only. Artwork averages two source rows
+into one full-block `█` glyph and sets only its foreground color. This avoids
+cell backgrounds because transparent desktop terminals may omit them while
+compositing. Every cell outside the artwork remains untouched, allowing the
 terminal host to composite the wallpaper.
+
+Color is structural rather than decorative: without foreground RGB values,
+every artwork cell becomes the terminal's default color. The process therefore
+forces Crossterm color output even when it inherits `NO_COLOR`.
 
 Requested layouts degrade by available geometry:
 
@@ -99,7 +104,7 @@ metadata and requires no D-Bus player.
 ## Testing
 
 Unit tests cover argument bounds, theme parsing, metadata conversion, identity
-normalization, artwork URL decoding and half-block output, playback
+normalization, artwork URL decoding and foreground-only output, playback
 extrapolation, progress clamping, responsive fallback, click hit regions, and
 every public layout.
 

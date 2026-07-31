@@ -13,6 +13,7 @@ use crossterm::{
         DisableMouseCapture, EnableMouseCapture, Event, EventStream, MouseButton, MouseEventKind,
     },
     execute,
+    style::force_color_output,
 };
 use futures_util::StreamExt;
 use mpris_tui::{
@@ -31,6 +32,10 @@ use tokio::{
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Color carries the artwork itself, so NO_COLOR cannot be honored without
+    // replacing the image with an unreadable solid block.
+    force_color_output(true);
+
     let config = match Config::parse(env::args().skip(1)) {
         Ok(config) => config,
         Err(message) if message.starts_with("mpris-tui —") || message.starts_with("mpris-tui ") =>

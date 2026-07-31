@@ -42,13 +42,12 @@ pub struct TerminalArtwork {
     target: (u16, u16),
     width: u16,
     height: u16,
-    cells: Vec<PixelPair>,
+    cells: Vec<ArtworkCell>,
 }
 
 #[derive(Clone, Copy)]
-struct PixelPair {
-    top: Option<[u8; 3]>,
-    bottom: Option<[u8; 3]>,
+struct ArtworkCell {
+    color: Option<[u8; 3]>,
 }
 
 impl TerminalArtwork {
@@ -77,7 +76,9 @@ impl TerminalArtwork {
                 let bottom = (bottom_y < pixel_height)
                     .then(|| visible_rgb(*resized.get_pixel(x, bottom_y)))
                     .flatten();
-                cells.push(PixelPair { top, bottom });
+                cells.push(ArtworkCell {
+                    color: blend_visible(top, bottom),
+                });
             }
         }
 
@@ -97,22 +98,24 @@ impl Widget for &TerminalArtwork {
 
         for y in 0..self.height.min(area.height) {
             for x in 0..self.width.min(area.width) {
-                let pair = self.cells[usize::from(y) * usize::from(self.width) + usize::from(x)];
+                let artwork_cell =
+                    self.cells[usize::from(y) * usize::from(self.width) + usize::from(x)];
                 let cell = &mut buffer[(start_x + x, start_y + y)];
-                match (pair.top, pair.bottom) {
-                    (Some(top), Some(bottom)) => {
-                        cell.set_symbol("▀").set_fg(rgb(top)).set_bg(rgb(bottom));
-                    }
-                    (Some(top), None) => {
-                        cell.set_symbol("▀").set_fg(rgb(top));
-                    }
-                    (None, Some(bottom)) => {
-                        cell.set_symbol("▄").set_fg(rgb(bottom));
-                    }
-                    (None, None) => {}
+                if let Some(color) = artwork_cell.color {
+                    cell.set_symbol("█").set_fg(rgb(color));
                 }
             }
         }
+    }
+}
+
+fn blend_visible(top: Option<[u8; 3]>, bottom: Option<[u8; 3]>) -> Option<[u8; 3]> {
+    match (top, bottom) {
+        (Some(top), Some(bottom)) => Some(std::array::from_fn(|index| {
+            ((u16::from(top[index]) + u16::from(bottom[index])) / 2) as u8
+        })),
+        (Some(color), None) | (None, Some(color)) => Some(color),
+        (None, None) => None,
     }
 }
 
@@ -186,7 +189,7 @@ mod tests {
     }
 
     #[test]
-    fn renders_two_pixels_per_terminal_cell() {
+    fn renders_two_pixels_as_one_foreground_only_cell() {
         let image = DynamicImage::ImageRgba8(RgbaImage::from_fn(1, 2, |_, y| {
             if y == 0 {
                 Rgba([255, 0, 0, 255])
@@ -200,8 +203,22 @@ mod tests {
 
         (&artwork).render(area, &mut buffer);
 
-        assert_eq!(buffer[(0, 0)].symbol(), "▀");
-        assert_eq!(buffer[(0, 0)].fg, Color::Rgb(255, 0, 0));
-        assert_eq!(buffer[(0, 0)].bg, Color::Rgb(0, 0, 255));
+        assert_eq!(buffer[(0, 0)].symbol(), "█");
+        assert_eq!(buffer[(0, 0)].fg, Color::Rgb(127, 0, 127));
+        assert_eq!(buffer[(0, 0)].bg, Color::Reset);
+    }
+
+    #[test]
+    fn leaves_fully_transparent_cells_untouched() {
+        let image = DynamicImage::ImageRgba8(RgbaImage::from_pixel(1, 2, Rgba([0, 0, 0, 0])));
+        let artwork = TerminalArtwork::from_image(&image, 1, 1).unwrap();
+        let area = Rect::new(0, 0, 1, 1);
+        let mut buffer = Buffer::empty(area);
+
+        (&artwork).render(area, &mut buffer);
+
+        assert_eq!(buffer[(0, 0)].symbol(), " ");
+        assert_eq!(buffer[(0, 0)].fg, Color::Reset);
+        assert_eq!(buffer[(0, 0)].bg, Color::Reset);
     }
 }
