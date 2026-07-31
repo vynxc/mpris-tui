@@ -8,6 +8,7 @@ pub struct Config {
     pub player: String,
     pub frames_per_second: u16,
     pub accent: Option<String>,
+    pub mouse: bool,
     pub demo: bool,
     pub once: bool,
 }
@@ -15,10 +16,11 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            layout: Layout::Hero,
+            layout: Layout::Vertical,
             player: "auto".into(),
             frames_per_second: 4,
             accent: None,
+            mouse: true,
             demo: false,
             once: false,
         }
@@ -45,6 +47,7 @@ impl Config {
                         .clamp(1, 30);
                 }
                 "--accent" => config.accent = Some(next_value(&mut arguments, "--accent")?),
+                "--no-mouse" => config.mouse = false,
                 "--demo" => config.demo = true,
                 "--once" => config.once = true,
                 "--help" | "-h" => return Err(help()),
@@ -73,11 +76,15 @@ fn next_value(
 
 pub fn help() -> String {
     let mut help = String::new();
-    writeln!(help, "mpris-tui — a transparent now-playing display").unwrap();
+    writeln!(help, "mpris-tui — a transparent click-only player").unwrap();
     writeln!(help).unwrap();
     writeln!(help, "Usage: mpris-tui [OPTIONS]").unwrap();
     writeln!(help).unwrap();
-    writeln!(help, "  --layout <NAME>    hero, wide, compact, or minimal").unwrap();
+    writeln!(
+        help,
+        "  --layout <NAME>    vertical, hero, wide, compact, or minimal"
+    )
+    .unwrap();
     writeln!(
         help,
         "  --player <MATCH>   auto, a bus name, or identity fragment"
@@ -89,6 +96,7 @@ pub fn help() -> String {
     )
     .unwrap();
     writeln!(help, "  --accent <#RRGGBB> override the accent color").unwrap();
+    writeln!(help, "  --no-mouse         disable clickable controls").unwrap();
     writeln!(
         help,
         "  --demo             use deterministic sample playback"
@@ -111,8 +119,17 @@ mod tests {
     #[test]
     fn parses_all_options() {
         let config = parse(&[
-            "--layout", "compact", "--player", "chromium", "--fps", "12", "--accent", "#aabbcc",
-            "--demo", "--once",
+            "--layout",
+            "compact",
+            "--player",
+            "chromium",
+            "--fps",
+            "12",
+            "--accent",
+            "#aabbcc",
+            "--no-mouse",
+            "--demo",
+            "--once",
         ])
         .unwrap();
 
@@ -120,6 +137,7 @@ mod tests {
         assert_eq!(config.player, "chromium");
         assert_eq!(config.frames_per_second, 12);
         assert_eq!(config.accent.as_deref(), Some("#aabbcc"));
+        assert!(!config.mouse);
         assert!(config.demo);
         assert!(config.once);
     }

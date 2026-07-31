@@ -93,23 +93,55 @@ def progress(
     draw.ellipse((knob - 5, y - 5, knob + 5, y + 5), fill=ACCENT)
 
 
-def signal_bars(
+def cover_art(
     draw: ImageDraw.ImageDraw,
     x: int,
     y: int,
-    count: int,
-    phase: int,
-    scale: float = 1.0,
+    size: int,
+    phase: float = 0.0,
 ) -> None:
-    for index in range(count):
-        height = int((18 + ((index * 17 + phase * 11) % 7) * 11) * scale)
-        color = (*ACCENT, 190 + (index % 3) * 20)
-        left = x + int(index * 12 * scale)
-        draw.rounded_rectangle(
-            (left, y - height // 2, left + max(4, int(6 * scale)), y + height // 2),
-            radius=3,
-            fill=color,
+    draw.rounded_rectangle(
+        (x, y, x + size, y + size),
+        radius=max(8, size // 18),
+        fill=(21, 15, 35, 235),
+        outline=(255, 255, 255, 35),
+        width=2,
+    )
+    center = (x + size // 2, y + size // 2)
+    for index, color in enumerate(
+        [(105, 76, 166, 210), (196, 143, 255, 190), (67, 196, 210, 165)]
+    ):
+        radius = int(size * (0.39 - index * 0.085))
+        offset = int(math.sin(phase + index * 1.7) * size * 0.035)
+        draw.ellipse(
+            (
+                center[0] - radius + offset,
+                center[1] - radius,
+                center[0] + radius + offset,
+                center[1] + radius,
+            ),
+            outline=color,
+            width=max(3, size // 45),
         )
+    draw.ellipse(
+        (
+            center[0] - size * 0.07,
+            center[1] - size * 0.07,
+            center[0] + size * 0.07,
+            center[1] + size * 0.07,
+        ),
+        fill=ACCENT,
+    )
+    draw.line(
+        (
+            x + size * 0.12,
+            y + size * 0.82,
+            x + size * 0.88,
+            y + size * 0.18,
+        ),
+        fill=(255, 255, 255, 36),
+        width=max(2, size // 70),
+    )
 
 
 def hero_frame(frame_index: int) -> Image.Image:
@@ -120,26 +152,25 @@ def hero_frame(frame_index: int) -> Image.Image:
     text(draw, (38, 10), "MPRIS TUI  /  TRANSPARENT DESKTOP CANVAS", "small", MUTED)
     text(draw, (WIDTH - 235, 10), "NO BACKGROUND", "small", ACCENT)
 
-    signal_bars(draw, 95, 315, 28, frame_index, 1.25)
-    text(draw, (105, 400), "SIGNAL / 04", "label", MUTED)
+    cover_art(draw, 470, 72, 260, frame_index / 8)
 
-    x = 560
-    text(draw, (x, 155), "PLAYING  /  MPRIS TUI", "label", ACCENT)
-    text(draw, (x, 210), "Afterglow Circuit", "hero", BRIGHT)
-    text(draw, (x, 282), "Nocturne Assembly", "body", ACCENT)
-    text(draw, (x, 325), "Signals in the Static", "small", MUTED)
+    text(draw, (481, 354), "MPRIS TUI  •  PLAYING", "label", ACCENT)
+    text(draw, (332, 392), "Afterglow Circuit", "hero", BRIGHT)
+    text(draw, (468, 458), "Nocturne Assembly", "body", ACCENT)
+    text(draw, (487, 497), "Signals in the Static", "small", MUTED)
 
     ratio = 0.42 + frame_index / 24 * 0.14
-    progress(draw, x, 405, 555, ratio)
-    text(draw, (x, 425), f"2:{7 + frame_index:02d}", "small", TEXT)
-    text(draw, (1064, 425), "4:18", "small", MUTED)
+    text(draw, (260, 541), f"2:{7 + frame_index:02d}", "small", TEXT)
+    progress(draw, 330, 552, 540, ratio)
+    text(draw, (890, 541), "4:18", "small", MUTED)
+    text(draw, (453, 579), "[ ◀◀ ]   [ || ]   [ ▶▶ ]", "small", TEXT)
 
     text(
         draw,
-        (38, HEIGHT - 42),
-        "The wallpaper remains visible through every unused terminal cell.",
+        (38, 579),
+        "LEFT-CLICK ONLY",
         "small",
-        TEXT,
+        MUTED,
     )
     return image
 
@@ -171,19 +202,25 @@ def panel(
         text(draw, (x0 + 35, (y0 + y1) // 2), "▶  Afterglow Circuit — Nocturne Assembly   2:07 / 4:18", "small", BRIGHT)
         return
 
-    text(draw, (x0 + 35, y0 + 88), "PLAYING  /  MPRIS TUI", "small", ACCENT)
-    title_role = "title" if variant in {"hero", "wide"} else "body"
-    text(draw, (x0 + 35, y0 + 130), "Afterglow Circuit", title_role, BRIGHT)
-    text(draw, (x0 + 35, y0 + 190), "Nocturne Assembly", "small", ACCENT)
-    if variant == "hero":
-        signal_bars(draw, x1 - 225, y0 + 242, 12, 3, 0.68)
+    if variant == "vertical":
+        cover_art(draw, (x0 + x1) // 2 - 62, y0 + 65, 124, 0.4)
+        text(draw, (x0 + 190, y0 + 208), "Afterglow Circuit", "body", BRIGHT)
+        text(draw, (x0 + 225, y0 + 246), "Nocturne Assembly", "small", ACCENT)
+    else:
+        cover_art(draw, x0 + 35, y0 + 85, 118, 0.4)
+        text(draw, (x0 + 180, y0 + 90), "PLAYING  •  MPRIS TUI", "small", ACCENT)
+        title_role = "title" if variant == "wide" else "body"
+        text(draw, (x0 + 180, y0 + 130), "Afterglow Circuit", title_role, BRIGHT)
+        text(draw, (x0 + 180, y0 + 190), "Nocturne Assembly", "small", ACCENT)
     progress(draw, x0 + 35, y1 - 62, x1 - x0 - 70, 0.49)
     text(draw, (x0 + 35, y1 - 48), "2:07", "small", TEXT)
+    text(draw, (x1 - 87, y1 - 48), "4:18", "small", MUTED)
+    text(draw, ((x0 + x1) // 2 - 93, y1 - 32), "[ ◀◀ ]  [ || ]  [ ▶▶ ]", "small", TEXT)
 
 
 def render_layouts() -> None:
     image = background(1400, 820, 0.8)
-    panel(image, (30, 30, 685, 390), "Hero", "hero")
+    panel(image, (30, 30, 685, 390), "Vertical", "vertical")
     panel(image, (715, 30, 1370, 390), "Wide", "wide")
     panel(image, (30, 420, 685, 790), "Compact", "compact")
     panel(image, (715, 420, 1370, 790), "Minimal", "minimal")

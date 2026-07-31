@@ -1,9 +1,9 @@
 [package]
 name = "mpris-tui"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.88"
-description = "A transparent, display-only MPRIS now-playing TUI"
+description = "A transparent, click-only MPRIS now-playing TUI"
 repository = "https://github.com/vynxc/mpris-tui"
 license = "MIT"
 keywords = ["mpris", "ratatui", "music", "terminal", "linux"]
@@ -11,7 +11,9 @@ categories = ["command-line-utilities", "multimedia"]
 
 [dependencies]
 anyhow = "1.0"
+crossterm = { version = "0.29", features = ["event-stream"] }
 futures-util = "0.3"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 ratatui = { version = "0.30.2", default-features = false, features = ["crossterm"] }
 signal-hook = "0.4"
 tokio = { version = "1.52", features = ["macros", "rt-multi-thread", "sync", "time"] }
@@ -24,4 +26,3 @@ zbus = { version = "5.18", default-features = false, features = ["tokio"] }
 lto = "thin"
 codegen-units = 1
 strip = true
-

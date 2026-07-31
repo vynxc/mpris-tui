@@ -27,7 +27,7 @@ impl Playback {
     pub fn symbol(self) -> &'static str {
         match self {
             Self::Playing => "▶",
-            Self::Paused => "Ⅱ",
+            Self::Paused => "||",
             Self::Stopped => "■",
         }
     }
@@ -37,6 +37,8 @@ impl Playback {
 pub struct PlayerSnapshot {
     pub service: String,
     pub identity: String,
+    pub track_id: Option<String>,
+    pub art_url: Option<String>,
     pub title: String,
     pub artists: Vec<String>,
     pub album: String,
@@ -47,6 +49,7 @@ pub struct PlayerSnapshot {
     pub volume: f64,
     pub can_go_previous: bool,
     pub can_go_next: bool,
+    pub can_seek: bool,
     pub synced_at: Instant,
 }
 
@@ -55,6 +58,8 @@ impl PlayerSnapshot {
         Self {
             service: "org.mpris.MediaPlayer2.demo".into(),
             identity: "MPRIS TUI".into(),
+            track_id: Some("/org/mpris/MediaPlayer2/TrackList/demo".into()),
+            art_url: None,
             title: "Afterglow Circuit".into(),
             artists: vec!["Nocturne Assembly".into()],
             album: "Signals in the Static".into(),
@@ -65,6 +70,7 @@ impl PlayerSnapshot {
             volume: 0.72,
             can_go_previous: true,
             can_go_next: true,
+            can_seek: true,
             synced_at: Instant::now(),
         }
     }
@@ -105,7 +111,7 @@ impl PlayerSnapshot {
 pub enum ProviderState {
     Connecting,
     Unavailable(String),
-    Ready(PlayerSnapshot),
+    Ready(Box<PlayerSnapshot>),
 }
 
 #[cfg(test)]
