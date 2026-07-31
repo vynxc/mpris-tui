@@ -42,8 +42,9 @@ service name or player identity.
 
 MPRIS does not continuously signal `Position`. A snapshot records position,
 rate, playback state, and sync time. The UI extrapolates between samples and
-clamps progress to known duration. A periodic read corrects drift, while the
-`Seeked` signal triggers an immediate refresh.
+clamps progress to known duration. `Position` is explicitly uncached because
+MPRIS does not emit `PropertiesChanged` for it. A periodic read corrects drift,
+while the `Seeked` signal triggers an immediate refresh.
 
 ## Rendering
 
@@ -106,7 +107,8 @@ metadata and requires no D-Bus player.
 Unit tests cover argument bounds, theme parsing, metadata conversion, identity
 normalization, artwork URL decoding and foreground-only output, playback
 extrapolation, progress clamping, responsive fallback, click hit regions, and
-every public layout.
+every public layout. The isolated bus test mutates `Position` without emitting
+a property signal and verifies that the monitor observes the new value.
 
 The integration test registers two mock interfaces at
 `/org/mpris/MediaPlayer2` inside an isolated `dbus-run-session`, discovers the

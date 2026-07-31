@@ -136,9 +136,9 @@ setting. `--accent` changes only the accent role; it does not recolor artwork.
 MPRIS metadata and state are signal-driven. Position is the exception: the
 MPRIS specification does not emit continuous position changes, so MPRIS TUI
 advances progress from the last position/rate sample and performs a two-second
-D-Bus resync. The UI defaults to four draws per second. Local `file://`
-artwork is bounded, decoded once when its URL changes, and resized once per
-terminal geometry. Remote artwork is never downloaded.
+uncached D-Bus resync. The UI defaults to four draws per second. Local
+`file://` artwork is bounded, decoded once when its URL changes, and resized
+once per terminal geometry. Remote artwork is never downloaded.
 
 ## Development
 

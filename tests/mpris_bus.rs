@@ -1,12 +1,19 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicI64, Ordering},
+        Arc, Mutex,
+    },
     time::Duration,
 };
 
 use mpris_tui::{
-    model::Playback,
-    mpris::{read_player, select_service, send_command, PlayerCommand},
+    model::{Playback, ProviderState},
+    mpris::{monitor, read_player, select_service, send_command, PlayerCommand},
+};
+use tokio::{
+    sync::{mpsc, watch},
+    time::timeout,
 };
 use zbus::{
     connection::Builder,
@@ -29,6 +36,7 @@ impl MockRoot {
 
 struct MockPlayer {
     actions: Arc<Mutex<Vec<String>>>,
+    position: Arc<AtomicI64>,
 }
 
 #[interface(name = "org.mpris.MediaPlayer2.Player")]
@@ -73,7 +81,7 @@ impl MockPlayer {
 
     #[zbus(property)]
     fn position(&self) -> i64 {
-        45_000_000
+        self.position.load(Ordering::Relaxed)
     }
 
     #[zbus(property)]
@@ -124,6 +132,7 @@ impl MockPlayer {
 #[tokio::test]
 async fn discovers_and_reads_a_mock_mpris_player() {
     let actions = Arc::new(Mutex::new(Vec::new()));
+    let position = Arc::new(AtomicI64::new(45_000_000));
     let connection = Builder::session()
         .unwrap()
         .name(SERVICE)
@@ -134,6 +143,7 @@ async fn discovers_and_reads_a_mock_mpris_player() {
             PATH,
             MockPlayer {
                 actions: Arc::clone(&actions),
+                position: Arc::clone(&position),
             },
         )
         .unwrap()
@@ -198,4 +208,40 @@ async fn discovers_and_reads_a_mock_mpris_player() {
             "seek:/org/mpris/MediaPlayer2/TrackList/mock:90000000"
         ]
     );
+
+    let (state_sender, mut state_receiver) = watch::channel(ProviderState::Connecting);
+    let (_command_sender, command_receiver) = mpsc::channel(4);
+    let monitor_task = tokio::spawn(monitor(
+        "test harness".into(),
+        state_sender,
+        command_receiver,
+    ));
+
+    timeout(Duration::from_secs(2), async {
+        loop {
+            state_receiver.changed().await.unwrap();
+            if let ProviderState::Ready(snapshot) = &*state_receiver.borrow() {
+                assert_eq!(snapshot.position, Duration::from_secs(45));
+                break;
+            }
+        }
+    })
+    .await
+    .expect("monitor did not publish its initial position");
+
+    position.store(90_000_000, Ordering::Relaxed);
+    timeout(Duration::from_secs(4), async {
+        loop {
+            state_receiver.changed().await.unwrap();
+            if let ProviderState::Ready(snapshot) = &*state_receiver.borrow() {
+                if snapshot.position == Duration::from_secs(90) {
+                    break;
+                }
+            }
+        }
+    })
+    .await
+    .expect("monitor reused a cached MPRIS position");
+
+    monitor_task.abort();
 }

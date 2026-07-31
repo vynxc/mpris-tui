@@ -56,7 +56,9 @@ trait Player {
     #[zbus(property)]
     fn metadata(&self) -> zbus::Result<HashMap<String, OwnedValue>>;
 
-    #[zbus(property)]
+    // MPRIS Position does not emit PropertiesChanged; caching it freezes the
+    // elapsed time at the first value read from a player.
+    #[zbus(property(emits_changed_signal = "false"))]
     fn position(&self) -> zbus::Result<i64>;
 
     #[zbus(property)]

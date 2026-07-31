@@ -8,6 +8,8 @@ All notable changes to MPRIS TUI will be documented here.
 - Added bounded local album-art decoding and transparent foreground-only
   rendering that remains visible in glyph-only terminal hosts.
 - Made artwork color reliable when the process inherits `NO_COLOR`.
+- Fixed elapsed time freezing because the non-signaling MPRIS `Position`
+  property was being cached.
 - Added click-only previous, play/pause, next, and seek controls with no
   keyboard shortcuts or in-app exit control.
 - Added elapsed and total duration directly alongside the seek rail.
